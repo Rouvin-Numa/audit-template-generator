@@ -110,7 +110,7 @@ function displayCSVTab(filename, rows) {
     const tabButton = document.createElement('button');
     tabButton.className = 'tab-button';
     tabButton.textContent = filename;
-    tabButton.onclick = () => switchTab(tabId);
+    tabButton.onclick = () => switchTab(tabId, tabButton);
     tabButtons.appendChild(tabButton);
 
     // Create tab panel
@@ -165,15 +165,15 @@ function displayCSVTab(filename, rows) {
 
     // Switch to first tab
     if (tabButtons.children.length === 1) {
-        switchTab(tabId);
+        switchTab(tabId, tabButton);
     }
 }
 
 // Switch tabs
-function switchTab(tabId) {
+function switchTab(tabId, buttonElement) {
     // Update buttons
     Array.from(tabButtons.children).forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    buttonElement.classList.add('active');
 
     // Update panels
     Array.from(tabContent.children).forEach(panel => panel.classList.remove('active'));
@@ -334,7 +334,7 @@ function createDealershipTemplatesTab(rooftops) {
     const tabButton = document.createElement('button');
     tabButton.className = 'tab-button';
     tabButton.textContent = 'Dealership Templates';
-    tabButton.onclick = () => switchTab(tabId);
+    tabButton.onclick = () => switchTab(tabId, tabButton);
     tabButtons.appendChild(tabButton);
 
     // Create tab panel
@@ -449,7 +449,7 @@ function createCSMTemplatesTab(csmRooftops) {
     const tabButton = document.createElement('button');
     tabButton.className = 'tab-button';
     tabButton.textContent = 'CSM Templates';
-    tabButton.onclick = () => switchTab(tabId);
+    tabButton.onclick = () => switchTab(tabId, tabButton);
     tabButtons.appendChild(tabButton);
 
     // Create tab panel
