@@ -45,6 +45,54 @@ body {
     gap: 15px;
 }
 
+/* Instructions Section */
+.instructions-section {
+    width: 100%;
+    max-width: 800px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 20px 25px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.instructions-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #30336b;
+    margin: 0 0 12px 0;
+}
+
+.instructions-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: decimal;
+}
+
+.instructions-list li {
+    font-size: 11px;
+    color: #2f3542;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.instructions-list li:last-child {
+    margin-bottom: 0;
+}
+
+.dashboard-link {
+    color: #4834df;
+    text-decoration: none;
+    word-break: break-all;
+    font-size: 10px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.dashboard-link:hover {
+    text-decoration: underline;
+}
+
 .drop-label {
     font-size: 15px;
     color: #2f3542;
@@ -185,12 +233,16 @@ body {
     border: 1px solid #dfe4ea;
     border-radius: 8px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
 }
 
 .card-header {
     padding: 15px 20px;
     background: white;
     border-bottom: 1px solid #f1f2f6;
+    flex-shrink: 0;
 }
 
 .card-title {
@@ -207,9 +259,10 @@ body {
     line-height: 1.6;
     white-space: pre-wrap;
     color: #2f3542;
-    min-height: 150px;
-    max-height: 300px;
+    min-height: 120px;
+    max-height: 250px;
     overflow-y: auto;
+    flex-shrink: 0;
 }
 
 .card-footer {
@@ -218,6 +271,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+    border-top: 1px solid #f1f2f6;
 }
 
 .copy-button {

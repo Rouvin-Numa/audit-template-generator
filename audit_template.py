@@ -90,6 +90,36 @@ class ZipCSVReaderApp:
         button_container = tk.Frame(self.drop_frame, bg="white")
         button_container.pack(expand=True, pady=30, padx=30)
 
+        # Instructions
+        instructions_frame = tk.Frame(button_container, bg="white")
+        instructions_frame.pack(pady=(0, 20))
+
+        instructions_title = tk.Label(
+            instructions_frame,
+            text="Steps to Use",
+            font=("Segoe UI", 12, "bold"),
+            bg="white",
+            fg=self.accent_color
+        )
+        instructions_title.pack(anchor=tk.W)
+
+        instructions_text = tk.Label(
+            instructions_frame,
+            text=(
+                "1) Navigate to the following dashboard:\n"
+                "   https://numberai.cloud.looker.com/dashboards/602?Rooftop%20Name=&Inbox%20ID=&Calls%20Created%20Date=14%20day&Call%20Count=%3C5&Rooftop%20ID=\n\n"
+                "2) Enter the appropriate Rooftop IDs and Inbox IDs into the dashboard filters.\n\n"
+                "3) Download the dashboard data as a CSV file.\n\n"
+                "4) Upload the CSV using the button below."
+            ),
+            font=("Segoe UI", 9),
+            bg="white",
+            fg=self.text_color,
+            justify=tk.LEFT,
+            wraplength=700
+        )
+        instructions_text.pack(anchor=tk.W, pady=(5, 0))
+
         self.drop_label = tk.Label(
             button_container,
             text="📁 Select ZIP or CSV file(s) to view contents",
@@ -586,11 +616,11 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
 """
                 # Add regular lines first
                 for line in regular_lines:
-                    template += f"{line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
+                    template += f"• {line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
 
                 # Add department/unassigned lines at the bottom
                 for line in department_unassigned_lines:
-                    template += f"{line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
+                    template += f"• {line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
 
                 template += """If you have any questions, feel free to email us at support@numa.com.
 """
@@ -599,11 +629,11 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 print(template)
                 print("="*80 + "\n")
 
+            # Generate CSM templates first
+            self.generate_csm_templates(rooftop_file, rooftops)
+
             # Create a tab with dealership templates
             self.create_template_tab(template_text, rooftops, "Dealership Templates")
-
-            # Generate CSM templates
-            self.generate_csm_templates(rooftop_file, rooftops)
 
         except Exception as e:
             print(f"\nERROR generating templates: {str(e)}")
@@ -663,7 +693,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 template += "We've identified the following dealerships with low call volume over the past two weeks. To help us follow up, could you please provide a point of contact for each location so we can reach out to them?\n"
 
                 for rooftop_info in rooftop_list:
-                    template += f"{rooftop_info['rooftop_name']} – {rooftop_info['inbox_name']}\n"
+                    template += f"• {rooftop_info['rooftop_name']} – {rooftop_info['inbox_name']}\n"
 
                 template += "\n"
 
@@ -720,11 +750,11 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
 
             # Add regular lines first
             for line in regular_lines:
-                template += f"{line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
+                template += f"• {line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
 
             # Add department/unassigned lines at the bottom
             for line in department_unassigned_lines:
-                template += f"{line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
+                template += f"• {line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
 
             template += "\nIf you have any questions, feel free to email us at support@numa.com."
 
@@ -881,7 +911,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             template += "We've identified the following dealerships with low call volume over the past two weeks. To help us follow up, could you please provide a point of contact for each location so we can reach out directly?\n"
 
             for rooftop_info in rooftop_list:
-                template += f"{rooftop_info['rooftop_name']} – {rooftop_info['inbox_name']}\n"
+                template += f"• {rooftop_info['rooftop_name']} – {rooftop_info['inbox_name']}\n"
 
             template += "\n"
 

@@ -315,11 +315,11 @@ function generateTemplates() {
             });
         });
 
+        // Create CSM templates first
+        generateCSMTemplates(rooftopFile, rooftops);
+
         // Create dealership templates
         createDealershipTemplatesTab(rooftops);
-
-        // Create CSM templates
-        generateCSMTemplates(rooftopFile, rooftops);
 
     } catch (error) {
         console.error('Error generating templates:', error);
@@ -374,11 +374,11 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
 `;
 
         regularLines.forEach(line => {
-            template += `${line.display_name} – Numa IT forwarding number: ${line.phone_number}\n`;
+            template += `• ${line.display_name} – Numa IT forwarding number: ${line.phone_number}\n`;
         });
 
         departmentUnassignedLines.forEach(line => {
-            template += `${line.display_name} – Numa IT forwarding number: ${line.phone_number}\n`;
+            template += `• ${line.display_name} – Numa IT forwarding number: ${line.phone_number}\n`;
         });
 
         template += `\nIf you have any questions, feel free to email us at support@numa.com.`;
@@ -470,7 +470,7 @@ We've identified the following dealerships with low call volume over the past tw
 `;
 
         rooftopList.forEach(rooftop => {
-            template += `${rooftop.rooftop_name} – ${rooftop.inbox_name}\n`;
+            template += `• ${rooftop.rooftop_name} – ${rooftop.inbox_name}\n`;
         });
 
         template += '\n';

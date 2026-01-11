@@ -12,6 +12,21 @@
             <!-- Drop Zone -->
             <div class="drop-zone" id="dropZone">
                 <div class="drop-content">
+                    <!-- Instructions -->
+                    <div class="instructions-section">
+                        <h3 class="instructions-title">Steps to Use</h3>
+                        <ol class="instructions-list">
+                            <li>Navigate to the following dashboard:<br>
+                                <a href="https://numberai.cloud.looker.com/dashboards/602?Rooftop%20Name=&Inbox%20ID=&Calls%20Created%20Date=14%20day&Call%20Count=%3C5&Rooftop%20ID=" target="_blank" class="dashboard-link">
+                                    https://numberai.cloud.looker.com/dashboards/602
+                                </a>
+                            </li>
+                            <li>Enter the appropriate Rooftop IDs and Inbox IDs into the dashboard filters.</li>
+                            <li>Download the dashboard data as a CSV file.</li>
+                            <li>Upload the CSV using the button below.</li>
+                        </ol>
+                    </div>
+
                     <label class="drop-label">📁 Select ZIP or CSV file(s) to view contents</label>
                     <input type="file" id="fileInput" accept=".zip,.csv" multiple style="display: none;">
                     <button class="browse-button" id="browseButton">Browse for ZIP or CSV file</button>
