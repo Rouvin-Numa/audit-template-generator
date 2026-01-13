@@ -34,10 +34,21 @@
                 </div>
             </div>
 
-            <!-- Tabs Container -->
+            <!-- Template Tabs Container (main) -->
             <div class="tabs-container" id="tabsContainer">
                 <div class="tab-buttons" id="tabButtons"></div>
                 <div class="tab-content" id="tabContent"></div>
+            </div>
+
+            <!-- Collapsible CSV Data Section -->
+            <div class="csv-section">
+                <button class="csv-toggle-btn" id="csvToggleBtn" onclick="toggleCsvSection()">
+                    ▶ View Raw CSV Data
+                </button>
+                <div class="csv-data-container" id="csvDataContainer" style="display: none;">
+                    <div class="csv-tab-buttons" id="csvTabButtons"></div>
+                    <div class="csv-tab-content" id="csvTabContent"></div>
+                </div>
             </div>
 
             <!-- Status Bar -->

@@ -1,6 +1,8 @@
 // Global variables
 let csvData = {};
 let currentTab = null;
+let currentCsvTab = null;
+let csvExpanded = false;
 
 // DOM Elements
 const dropZone = document.getElementById('dropZone');
@@ -11,6 +13,24 @@ const statusLabel = document.getElementById('statusLabel');
 const statusBar = statusLabel.parentElement;
 const tabButtons = document.getElementById('tabButtons');
 const tabContent = document.getElementById('tabContent');
+
+// CSV Section Elements
+const csvToggleBtn = document.getElementById('csvToggleBtn');
+const csvDataContainer = document.getElementById('csvDataContainer');
+const csvTabButtons = document.getElementById('csvTabButtons');
+const csvTabContent = document.getElementById('csvTabContent');
+
+// Toggle CSV Section
+function toggleCsvSection() {
+    csvExpanded = !csvExpanded;
+    if (csvExpanded) {
+        csvDataContainer.style.display = 'block';
+        csvToggleBtn.textContent = '▼ Hide Raw CSV Data';
+    } else {
+        csvDataContainer.style.display = 'none';
+        csvToggleBtn.textContent = '▶ View Raw CSV Data';
+    }
+}
 
 // Event Listeners
 browseButton.addEventListener('click', () => fileInput.click());
@@ -100,23 +120,23 @@ function processCSVFile(file) {
     });
 }
 
-// Display CSV in a tab
+// Display CSV in a tab (in the collapsible CSV section)
 function displayCSVTab(filename, rows) {
     if (!rows || rows.length === 0) return;
 
-    const tabId = `tab-${Date.now()}-${Math.random()}`;
+    const tabId = `csv-tab-${Date.now()}-${Math.random()}`;
 
-    // Create tab button
+    // Create tab button in CSV section
     const tabButton = document.createElement('button');
-    tabButton.className = 'tab-button';
+    tabButton.className = 'csv-tab-button';
     tabButton.textContent = filename;
-    tabButton.onclick = () => switchTab(tabId, tabButton);
-    tabButtons.appendChild(tabButton);
+    tabButton.onclick = () => switchCsvTab(tabId, tabButton);
+    csvTabButtons.appendChild(tabButton);
 
-    // Create tab panel
+    // Create tab panel in CSV section
     const tabPanel = document.createElement('div');
     tabPanel.id = tabId;
-    tabPanel.className = 'tab-panel';
+    tabPanel.className = 'csv-tab-panel';
 
     const headers = rows[0];
     const dataRows = rows.slice(1).filter(row => row.some(cell => cell && cell.trim()));
@@ -161,12 +181,25 @@ function displayCSVTab(filename, rows) {
     info.textContent = `Rows: ${dataRows.length} | Columns: ${headers.length}`;
     tabPanel.appendChild(info);
 
-    tabContent.appendChild(tabPanel);
+    csvTabContent.appendChild(tabPanel);
 
-    // Switch to first tab
-    if (tabButtons.children.length === 1) {
-        switchTab(tabId, tabButton);
+    // Switch to first CSV tab
+    if (csvTabButtons.children.length === 1) {
+        switchCsvTab(tabId, tabButton);
     }
+}
+
+// Switch CSV tabs (in collapsible section)
+function switchCsvTab(tabId, buttonElement) {
+    // Update buttons
+    Array.from(csvTabButtons.children).forEach(btn => btn.classList.remove('active'));
+    buttonElement.classList.add('active');
+
+    // Update panels
+    Array.from(csvTabContent.children).forEach(panel => panel.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+
+    currentCsvTab = tabId;
 }
 
 // Switch tabs
@@ -184,9 +217,15 @@ function switchTab(tabId, buttonElement) {
 
 // Clear all tabs
 function clearTabs() {
+    // Clear main template tabs
     tabButtons.innerHTML = '';
     tabContent.innerHTML = '';
     currentTab = null;
+
+    // Clear CSV tabs
+    csvTabButtons.innerHTML = '';
+    csvTabContent.innerHTML = '';
+    currentCsvTab = null;
 }
 
 // Update status
@@ -245,18 +284,56 @@ function findExactColIdx(headers, targetName) {
 function generateTemplates() {
     let linesFile = null;
     let rooftopFile = null;
+    let deskPhonesFile = null;
 
     for (const [filename, rows] of Object.entries(csvData)) {
         if (filename.includes('lines_with_low') && filename.includes('call_volume')) {
             linesFile = rows;
         } else if (filename.includes('rooftop_information') || filename.includes('rooftop_informatio')) {
             rooftopFile = rows;
+        } else if (filename.includes('desk_phones')) {
+            deskPhonesFile = rows;
         }
     }
 
     if (!linesFile || !rooftopFile) {
         console.log('Required CSV files not found for template generation');
         return;
+    }
+
+    // Build desk phone lookup (display name -> phone number) if desk_phones file exists
+    const deskPhoneLookup = {};
+    if (deskPhonesFile && deskPhonesFile.length > 1) {
+        const deskHeaders = deskPhonesFile[0];
+        const deskData = deskPhonesFile.slice(1).filter(row => row.some(cell => cell && cell.trim()));
+
+        // Find column indices for desk phones file
+        let deskDisplayNameIdx = null;
+        let deskPhoneNumberIdx = null;
+
+        deskHeaders.forEach((header, idx) => {
+            const headerLower = header.toLowerCase().trim();
+            // Check for display name column
+            if (headerLower.includes('display name') || headerLower.includes('display_name')) {
+                deskDisplayNameIdx = idx;
+            }
+            // Check for phone number column - handle various naming conventions (separate if, not elif)
+            if (headerLower.includes('phone number') || headerLower.includes('phone_number') || headerLower.includes('phone numbers')) {
+                deskPhoneNumberIdx = idx;
+            }
+        });
+
+        if (deskDisplayNameIdx !== null && deskPhoneNumberIdx !== null) {
+            deskData.forEach(row => {
+                if (row.length > Math.max(deskDisplayNameIdx, deskPhoneNumberIdx)) {
+                    const displayName = (row[deskDisplayNameIdx] || '').trim().toLowerCase();
+                    const phoneNumber = (row[deskPhoneNumberIdx] || '').trim();
+                    if (displayName && phoneNumber) {
+                        deskPhoneLookup[displayName] = phoneNumber;
+                    }
+                }
+            });
+        }
     }
 
     try {
@@ -299,9 +376,9 @@ function generateTemplates() {
                 const nameValue = row[nameIdx]?.trim() || '';
 
                 if (ownerType === 'USER') {
-                    displayName = `Staff line - User unassigned [${capitalizeName(nameValue)}]`;
+                    displayName = `Unassigned line - [${capitalizeName(nameValue)}]`;
                 } else if (ownerType === 'DEPARTMENT') {
-                    displayName = `Department line - [${capitalizeName(nameValue)}]`;
+                    displayName = `Unassigned line - [${capitalizeName(nameValue)}]`;
                 } else {
                     displayName = capitalizeName(nameValue) || 'Unknown';
                 }
@@ -309,9 +386,19 @@ function generateTemplates() {
                 displayName = capitalizeName(displayName);
             }
 
+            // Get raw values for desk phone table
+            const rawDisplayName = row[displayNameIdx]?.trim() || '';
+            const rawName = row[nameIdx]?.trim() || '';
+
+            // Look up desk phone number by matching display name (case-insensitive)
+            const deskPhone = deskPhoneLookup[rawDisplayName.toLowerCase()] || '';
+
             rooftops[rooftop].lines.push({
                 display_name: displayName,
-                phone_number: formatPhoneNumber(row[phoneNumberIdx]?.trim() || '')
+                phone_number: formatPhoneNumber(row[phoneNumberIdx]?.trim() || ''),
+                raw_display_name: rawDisplayName,
+                raw_name: rawName,
+                desk_phone: deskPhone
             });
         });
 
@@ -357,8 +444,7 @@ function createDealershipTemplatesTab(rooftops) {
         const departmentUnassignedLines = [];
 
         lines.forEach(line => {
-            if (line.display_name.startsWith('Department line') ||
-                line.display_name.startsWith('Staff line - User unassigned')) {
+            if (line.display_name.startsWith('Unassigned line')) {
                 departmentUnassignedLines.push(line);
             } else {
                 regularLines.push(line);
@@ -381,12 +467,17 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             template += `• ${line.display_name} – Numa IT forwarding number: ${line.phone_number}\n`;
         });
 
-        template += `\nIf you have any questions, feel free to email us at support@numa.com.`;
+        template += `\nAdditionally, when you have a moment, kindly update the following roster with the latest desk phone numbers for your staff members
+Roster link [insert roster link here]
+
+If you have any questions, feel free to email us at support@numa.com.`;
 
         allTemplatesText += template + '\n\n' + '='.repeat(80) + '\n\n';
 
-        // Create card
-        const card = createTemplateCard(idx, rooftopName, template, lines.length, rooftopName);
+        // Create card with subject line and desk phones data
+        const subjectLine = `${rooftopName} - ${inboxName}: Phoneline forwarding`;
+        const deskPhonesData = [...regularLines, ...departmentUnassignedLines];
+        const card = createTemplateCard(idx, rooftopName, template, lines.length, rooftopName, false, subjectLine, deskPhonesData);
         templatesContainer.appendChild(card);
         idx++;
     }
@@ -473,7 +564,7 @@ We've identified the following dealerships with low call volume over the past tw
             template += `• ${rooftop.rooftop_name} – ${rooftop.inbox_name}\n`;
         });
 
-        template += '\n';
+        template += '\nPlease let us know whether the lines are intentionally not forwarding, or if you\'d prefer that we avoid contacting any of the dealerships mentioned above.';
 
         allTemplatesText += template + '\n' + '='.repeat(80) + '\n\n';
 
@@ -493,7 +584,7 @@ We've identified the following dealerships with low call volume over the past tw
 }
 
 // Create template card
-function createTemplateCard(idx, title, template, count, entityName, isCSM = false) {
+function createTemplateCard(idx, title, template, count, entityName, isCSM = false, subjectLine = null, deskPhonesData = null) {
     const card = document.createElement('div');
     card.className = 'template-card';
 
@@ -505,10 +596,93 @@ function createTemplateCard(idx, title, template, count, entityName, isCSM = fal
     titleEl.textContent = `Template ${idx}: ${title}`;
     header.appendChild(titleEl);
 
-    // Template text
-    const textDiv = document.createElement('div');
-    textDiv.className = 'template-text';
-    textDiv.textContent = template;
+    // Subject line (only for dealership templates)
+    let subjectInput = null;
+    if (subjectLine) {
+        const subjectContainer = document.createElement('div');
+        subjectContainer.className = 'subject-container';
+
+        const subjectLabel = document.createElement('span');
+        subjectLabel.className = 'subject-label';
+        subjectLabel.textContent = 'Subject: ';
+
+        subjectInput = document.createElement('input');
+        subjectInput.type = 'text';
+        subjectInput.className = 'subject-input';
+        subjectInput.value = subjectLine;
+
+        subjectContainer.appendChild(subjectLabel);
+        subjectContainer.appendChild(subjectInput);
+        card.appendChild(header);
+        card.appendChild(subjectContainer);
+    } else {
+        card.appendChild(header);
+    }
+
+    // Content container - side by side layout for template and desk phones table
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'card-content-container';
+
+    // Left side - Template text (editable textarea)
+    const leftSide = document.createElement('div');
+    leftSide.className = 'card-left-side';
+
+    const textArea = document.createElement('textarea');
+    textArea.className = 'template-text';
+    textArea.value = template;
+    textArea.rows = 12;
+    leftSide.appendChild(textArea);
+
+    contentContainer.appendChild(leftSide);
+
+    // Right side - Possible desk phones table (only for dealership templates)
+    if (deskPhonesData && deskPhonesData.length > 0) {
+        const rightSide = document.createElement('div');
+        rightSide.className = 'card-right-side';
+
+        const deskPhonesLabel = document.createElement('div');
+        deskPhonesLabel.className = 'desk-phones-label';
+        deskPhonesLabel.textContent = 'Possible Desk Phones';
+        rightSide.appendChild(deskPhonesLabel);
+
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'desk-phones-table-container';
+
+        const table = document.createElement('table');
+        table.className = 'desk-phones-table';
+
+        // Table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const th1 = document.createElement('th');
+        th1.textContent = 'Display Name';
+        const th2 = document.createElement('th');
+        th2.textContent = 'Name';
+        headerRow.appendChild(th1);
+        headerRow.appendChild(th2);
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Table body
+        const tbody = document.createElement('tbody');
+        deskPhonesData.forEach(line => {
+            const tr = document.createElement('tr');
+            const td1 = document.createElement('td');
+            td1.textContent = line.raw_display_name || '';
+            const td2 = document.createElement('td');
+            td2.textContent = line.raw_name || '';
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        tableContainer.appendChild(table);
+        rightSide.appendChild(tableContainer);
+        contentContainer.appendChild(rightSide);
+    }
+
+    card.appendChild(contentContainer);
 
     // Footer
     const footer = document.createElement('div');
@@ -518,7 +692,13 @@ function createTemplateCard(idx, title, template, count, entityName, isCSM = fal
     copyBtn.className = 'copy-button';
     copyBtn.textContent = `📋 Copy Template ${idx}`;
     copyBtn.onclick = () => {
-        navigator.clipboard.writeText(template).then(() => {
+        // Get the current (possibly edited) text from textarea
+        let textToCopy = textArea.value;
+        // Include subject line if present
+        if (subjectInput) {
+            textToCopy = `Subject: ${subjectInput.value}\n\n${textToCopy}`;
+        }
+        navigator.clipboard.writeText(textToCopy).then(() => {
             const originalText = copyBtn.textContent;
             copyBtn.textContent = '✓ Copied!';
             copyBtn.classList.add('copied');
@@ -539,8 +719,6 @@ function createTemplateCard(idx, title, template, count, entityName, isCSM = fal
     footer.appendChild(copyBtn);
     footer.appendChild(info);
 
-    card.appendChild(header);
-    card.appendChild(textDiv);
     card.appendChild(footer);
 
     return card;

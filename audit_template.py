@@ -11,7 +11,7 @@ class ZipCSVReaderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Audit Template Generator")
-        self.root.geometry("900x700")
+        self.root.geometry("1200x800")
 
         # Modern color scheme
         self.bg_color = "#f5f6fa"
@@ -88,7 +88,7 @@ class ZipCSVReaderApp:
 
         # Label and button container
         button_container = tk.Frame(self.drop_frame, bg="white")
-        button_container.pack(expand=True, pady=30, padx=30)
+        button_container.pack(expand=True, pady=20, padx=30)
 
         # Instructions
         instructions_frame = tk.Frame(button_container, bg="white")
@@ -157,13 +157,42 @@ class ZipCSVReaderApp:
         )
         self.current_file_label.pack(pady=8)
 
-        # Notebook for displaying CSV files
+        # Main notebook for templates only
         self.notebook = ttk.Notebook(main_frame, style="Modern.TNotebook")
         self.notebook.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10)
 
+        # Collapsible CSV Data section
+        self.csv_section_frame = tk.Frame(main_frame, bg=self.bg_color)
+        self.csv_section_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+
+        self.csv_expanded = tk.BooleanVar(value=False)
+
+        self.csv_toggle_btn = tk.Button(
+            self.csv_section_frame,
+            text="▶ View Raw CSV Data",
+            command=self.toggle_csv_section,
+            font=("Segoe UI", 9),
+            bg="#dfe4ea",
+            fg=self.text_color,
+            activebackground="#c8d6e5",
+            activeforeground=self.text_color,
+            relief=tk.FLAT,
+            borderwidth=0,
+            padx=10,
+            pady=5,
+            cursor="hand2",
+            anchor=tk.W
+        )
+        self.csv_toggle_btn.pack(fill=tk.X)
+
+        # CSV notebook (hidden by default)
+        self.csv_notebook_frame = tk.Frame(main_frame, bg=self.bg_color)
+        self.csv_notebook = ttk.Notebook(self.csv_notebook_frame, style="Modern.TNotebook")
+        self.csv_notebook.pack(fill=tk.BOTH, expand=True)
+
         # Status bar with modern style
         status_frame = tk.Frame(main_frame, bg=self.bg_color)
-        status_frame.grid(row=2, column=0, sticky=(tk.W, tk.E))
+        status_frame.grid(row=4, column=0, sticky=(tk.W, tk.E))
 
         self.status_label = tk.Label(
             status_frame,
@@ -180,6 +209,20 @@ class ZipCSVReaderApp:
 
         # Enable drag and drop using Windows-specific method
         self.setup_drag_drop()
+
+    def toggle_csv_section(self):
+        """Toggle the CSV data section visibility"""
+        if self.csv_expanded.get():
+            # Collapse
+            self.csv_notebook_frame.grid_forget()
+            self.csv_toggle_btn.config(text="▶ View Raw CSV Data")
+            self.csv_expanded.set(False)
+        else:
+            # Expand
+            self.csv_notebook_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+            self.csv_notebook_frame.configure(height=200)
+            self.csv_toggle_btn.config(text="▼ Hide Raw CSV Data")
+            self.csv_expanded.set(True)
 
     def setup_drag_drop(self):
         """Setup drag and drop functionality"""
@@ -225,9 +268,11 @@ class ZipCSVReaderApp:
     def process_zip_file(self, zip_path):
         """Process the dropped/selected zip file"""
         try:
-            # Clear existing tabs
+            # Clear existing tabs from both notebooks
             for tab in self.notebook.tabs():
                 self.notebook.forget(tab)
+            for tab in self.csv_notebook.tabs():
+                self.csv_notebook.forget(tab)
 
             self.status_label.config(text=f"Processing: {os.path.basename(zip_path)}")
             self.current_file_label.config(text=f"Current file: {os.path.basename(zip_path)}")
@@ -265,9 +310,11 @@ class ZipCSVReaderApp:
     def process_csv_files(self, csv_paths):
         """Process standalone CSV files (not in a ZIP)"""
         try:
-            # Clear existing tabs
+            # Clear existing tabs from both notebooks
             for tab in self.notebook.tabs():
                 self.notebook.forget(tab)
+            for tab in self.csv_notebook.tabs():
+                self.csv_notebook.forget(tab)
 
             self.status_label.config(text=f"Processing CSV file(s)...")
 
@@ -302,9 +349,9 @@ class ZipCSVReaderApp:
             # Print to terminal
             self.print_csv_to_terminal(filename, rows)
 
-            # Create a frame for this CSV
-            frame = ttk.Frame(self.notebook)
-            self.notebook.add(frame, text=os.path.basename(filename))
+            # Create a frame for this CSV in the CSV notebook (not main notebook)
+            frame = ttk.Frame(self.csv_notebook)
+            self.csv_notebook.add(frame, text=os.path.basename(filename))
 
             # Create treeview for tabular display
             tree_frame = ttk.Frame(frame)
@@ -360,8 +407,8 @@ class ZipCSVReaderApp:
                 empty_label.pack(pady=20)
 
         except Exception as e:
-            error_frame = ttk.Frame(self.notebook)
-            self.notebook.add(error_frame, text=os.path.basename(filename))
+            error_frame = ttk.Frame(self.csv_notebook)
+            self.csv_notebook.add(error_frame, text=os.path.basename(filename))
             error_label = ttk.Label(
                 error_frame,
                 text=f"Error reading file:\n{str(e)}",
@@ -396,9 +443,9 @@ class ZipCSVReaderApp:
                 # Print to terminal
                 self.print_csv_to_terminal(csv_filename, rows)
 
-                # Create a frame for this CSV
-                frame = ttk.Frame(self.notebook)
-                self.notebook.add(frame, text=os.path.basename(csv_filename))
+                # Create a frame for this CSV in the CSV notebook (not main notebook)
+                frame = ttk.Frame(self.csv_notebook)
+                self.csv_notebook.add(frame, text=os.path.basename(csv_filename))
 
                 # Create treeview for tabular display
                 tree_frame = ttk.Frame(frame)
@@ -456,8 +503,8 @@ class ZipCSVReaderApp:
                 return rows
 
         except Exception as e:
-            error_frame = ttk.Frame(self.notebook)
-            self.notebook.add(error_frame, text=os.path.basename(csv_filename))
+            error_frame = ttk.Frame(self.csv_notebook)
+            self.csv_notebook.add(error_frame, text=os.path.basename(csv_filename))
             error_label = ttk.Label(
                 error_frame,
                 text=f"Error reading file:\n{str(e)}",
@@ -499,12 +546,15 @@ class ZipCSVReaderApp:
         # Check if we have the required files
         lines_file = None
         rooftop_file = None
+        desk_phones_file = None
 
         for filename, rows in csv_data.items():
             if 'lines_with_low' in filename and 'call_volume' in filename:
                 lines_file = rows
             elif 'rooftop_information' in filename or 'rooftop_informatio' in filename:
                 rooftop_file = rows
+            elif 'desk_phones' in filename:
+                desk_phones_file = rows
 
         if not lines_file or not rooftop_file:
             print("\n" + "!"*80)
@@ -513,6 +563,33 @@ class ZipCSVReaderApp:
             print("Required: 'rooftop_information.csv' and 'lines_with_low_*_call_volume.csv'")
             print("!"*80 + "\n")
             return
+
+        # Build desk phone lookup (display name -> phone number) if desk_phones file exists
+        desk_phone_lookup = {}
+        if desk_phones_file and len(desk_phones_file) > 1:
+            desk_headers = desk_phones_file[0]
+            desk_data = desk_phones_file[1:]
+
+            # Find column indices for desk phones file
+            desk_display_name_idx = None
+            desk_phone_number_idx = None
+
+            for idx, header in enumerate(desk_headers):
+                header_lower = header.lower().strip()
+                # Check for display name column
+                if 'display name' in header_lower or 'display_name' in header_lower:
+                    desk_display_name_idx = idx
+                # Check for phone number column - handle various naming conventions
+                if 'phone number' in header_lower or 'phone_number' in header_lower or 'phone numbers' in header_lower:
+                    desk_phone_number_idx = idx
+
+            if desk_display_name_idx is not None and desk_phone_number_idx is not None:
+                for row in desk_data:
+                    if len(row) > max(desk_display_name_idx, desk_phone_number_idx):
+                        display_name = row[desk_display_name_idx].strip().lower()
+                        phone_number = row[desk_phone_number_idx].strip()
+                        if display_name and phone_number:
+                            desk_phone_lookup[display_name] = phone_number
 
         try:
             # Parse lines_with_low_call_volume.csv
@@ -573,18 +650,28 @@ class ZipCSVReaderApp:
                             name_value = row[name_idx].strip() if name_idx is not None and name_idx < len(row) else ''
 
                             if owner_type == 'USER':
-                                display_name = f"Staff line - User unassigned [{self.capitalize_name(name_value)}]"
+                                display_name = f"Unassigned line - [{self.capitalize_name(name_value)}]"
                             elif owner_type == 'DEPARTMENT':
-                                display_name = f"Department line - [{self.capitalize_name(name_value)}]"
+                                display_name = f"Unassigned line - [{self.capitalize_name(name_value)}]"
                             else:
                                 display_name = self.capitalize_name(name_value) if name_value else 'Unknown'
                         else:
                             # Capitalize the display name
                             display_name = self.capitalize_name(display_name)
 
+                        # Get raw name value for desk phone table
+                        raw_name = row[name_idx].strip() if name_idx is not None and name_idx < len(row) else ''
+                        raw_display_name = row[display_name_idx].strip() if display_name_idx < len(row) else ''
+
+                        # Look up desk phone number by matching display name (case-insensitive)
+                        desk_phone = desk_phone_lookup.get(raw_display_name.lower(), '')
+
                         rooftops[rooftop]['lines'].append({
                             'display_name': display_name,
-                            'phone_number': self.format_phone_number(row[phone_number_idx].strip())
+                            'phone_number': self.format_phone_number(row[phone_number_idx].strip()),
+                            'raw_display_name': raw_display_name,
+                            'raw_name': raw_name,
+                            'desk_phone': desk_phone
                         })
 
             # Generate templates
@@ -603,7 +690,7 @@ class ZipCSVReaderApp:
 
                 for line in lines:
                     display_name = line['display_name']
-                    if display_name.startswith('Department line') or display_name.startswith('Staff line - User unassigned'):
+                    if display_name.startswith('Unassigned line'):
                         department_unassigned_lines.append(line)
                     else:
                         regular_lines.append(line)
@@ -738,7 +825,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
 
             for line in lines:
                 display_name = line['display_name']
-                if display_name.startswith('Department line') or display_name.startswith('Staff line - User unassigned'):
+                if display_name.startswith('Unassigned line'):
                     department_unassigned_lines.append(line)
                 else:
                     regular_lines.append(line)
@@ -756,6 +843,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             for line in department_unassigned_lines:
                 template += f"• {line['display_name']} – Numa IT forwarding number: {line['phone_number']}\n"
 
+            template += "\nAdditionally, when you have a moment, kindly update the following roster with the latest desk phone numbers for your staff members\nRoster link [insert roster link here]\n"
             template += "\nIf you have any questions, feel free to email us at support@numa.com."
 
             # Create card frame with modern styling
@@ -766,7 +854,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 highlightthickness=1,
                 relief=tk.FLAT
             )
-            card_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=8)
+            card_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
             # Card header
             header_frame = tk.Frame(card_frame, bg="white")
@@ -782,33 +870,110 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             )
             header_label.pack(side=tk.LEFT)
 
-            # Text widget for this template
+            # Subject line display
+            subject_line = f"{rooftop_name} - {inbox_name}: Phoneline forwarding"
+
+            subject_frame = tk.Frame(card_frame, bg="white")
+            subject_frame.pack(fill=tk.X, padx=15, pady=(0, 5))
+
+            subject_label = tk.Label(
+                subject_frame,
+                text="Subject: ",
+                font=("Segoe UI", 10, "bold"),
+                bg="white",
+                fg=self.text_color
+            )
+            subject_label.pack(side=tk.LEFT)
+
+            subject_text = tk.Entry(
+                subject_frame,
+                font=("Segoe UI", 10),
+                relief=tk.FLAT,
+                bg="#f8f9fa",
+                fg=self.text_color,
+                width=60
+            )
+            subject_text.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+            subject_text.insert(0, subject_line)
+
+            # Content frame - side by side layout for template and desk phones table
+            content_frame = tk.Frame(card_frame, bg="white")
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+
+            # Left side - Template text widget (editable)
+            left_frame = tk.Frame(content_frame, bg="white")
+            left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
             text_widget = tk.Text(
-                card_frame,
+                left_frame,
                 wrap=tk.WORD,
-                height=10,
+                height=14,
                 font=("Segoe UI", 10),
                 relief=tk.FLAT,
                 borderwidth=0,
-                padx=15,
-                pady=10,
+                padx=12,
+                pady=8,
                 bg="#f8f9fa",
                 fg=self.text_color
             )
-            text_widget.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 10))
+            text_widget.pack(fill=tk.BOTH, expand=True)
             text_widget.insert(1.0, template)
-            text_widget.config(state=tk.DISABLED)
+            # Template is now editable - no state=DISABLED
+
+            # Right side - Possible desk phones table
+            right_frame = tk.Frame(content_frame, bg="white")
+            right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(15, 0))
+
+            desk_phones_label = tk.Label(
+                right_frame,
+                text="Possible Desk Phones",
+                font=("Segoe UI", 10, "bold"),
+                bg="white",
+                fg=self.accent_color
+            )
+            desk_phones_label.pack(anchor=tk.W, pady=(0, 5))
+
+            # Create treeview for desk phones table
+            desk_tree_frame = tk.Frame(right_frame, bg="white")
+            desk_tree_frame.pack(fill=tk.BOTH, expand=True)
+
+            desk_tree = ttk.Treeview(
+                desk_tree_frame,
+                columns=("display_name", "name"),
+                show="headings",
+                height=10
+            )
+            desk_tree.heading("display_name", text="Display Name")
+            desk_tree.heading("name", text="Name")
+            desk_tree.column("display_name", width=150, minwidth=100)
+            desk_tree.column("name", width=250, minwidth=180)
+
+            # Add scrollbar for desk phones table
+            desk_scrollbar = ttk.Scrollbar(desk_tree_frame, orient="vertical", command=desk_tree.yview)
+            desk_tree.configure(yscrollcommand=desk_scrollbar.set)
+
+            desk_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            desk_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            # Populate desk phones table with all lines (regular + unassigned)
+            for line in regular_lines + department_unassigned_lines:
+                raw_display = line.get('raw_display_name', '')
+                raw_name = line.get('raw_name', '')
+                desk_tree.insert("", tk.END, values=(raw_display, raw_name))
 
             # Button frame
             button_frame = tk.Frame(card_frame, bg="white")
             button_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
 
-            # Copy button for this template
-            def make_copy_func(t, btn, orig_text):
+            # Copy button for this template - reads from text widget
+            def make_copy_func(tw, subj_entry, btn, orig_text, rname):
                 def copy_func():
+                    current_text = tw.get("1.0", tk.END).strip()
+                    current_subject = subj_entry.get().strip()
+                    full_copy = f"Subject: {current_subject}\n\n{current_text}"
                     self.root.clipboard_clear()
-                    self.root.clipboard_append(t)
-                    self.status_label.config(text=f"✓ Copied template for {rooftop_name} to clipboard", bg=self.success_color, fg="white")
+                    self.root.clipboard_append(full_copy)
+                    self.status_label.config(text=f"✓ Copied template for {rname} to clipboard", bg=self.success_color, fg="white")
                     btn.config(text="✓ Copied!", bg=self.success_color)
                     # Reset button text after 2 seconds
                     self.root.after(2000, lambda: (btn.config(text=orig_text, bg=self.primary_color),
@@ -830,7 +995,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 pady=8,
                 cursor="hand2"
             )
-            copy_btn.config(command=make_copy_func(template, copy_btn, button_text))
+            copy_btn.config(command=make_copy_func(text_widget, subject_text, copy_btn, button_text, rooftop_name))
             copy_btn.pack(side=tk.LEFT, padx=(0, 5))
 
             # Info label
@@ -913,7 +1078,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             for rooftop_info in rooftop_list:
                 template += f"• {rooftop_info['rooftop_name']} – {rooftop_info['inbox_name']}\n"
 
-            template += "\n"
+            template += "\nPlease let us know whether the lines are intentionally not forwarding, or if you'd prefer that we avoid contacting any of the dealerships mentioned above."
 
             # Create card frame with modern styling
             card_frame = tk.Frame(
@@ -923,7 +1088,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 highlightthickness=1,
                 relief=tk.FLAT
             )
-            card_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=8)
+            card_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
             # Card header
             header_frame = tk.Frame(card_frame, bg="white")
@@ -939,32 +1104,33 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             )
             header_label.pack(side=tk.LEFT)
 
-            # Text widget for this template
+            # Text widget for this template (editable)
             text_widget = tk.Text(
                 card_frame,
                 wrap=tk.WORD,
-                height=8,
+                height=10,
                 font=("Segoe UI", 10),
                 relief=tk.FLAT,
                 borderwidth=0,
-                padx=15,
-                pady=10,
+                padx=12,
+                pady=8,
                 bg="#f8f9fa",
                 fg=self.text_color
             )
-            text_widget.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 10))
+            text_widget.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
             text_widget.insert(1.0, template)
-            text_widget.config(state=tk.DISABLED)
+            # Template is now editable - no state=DISABLED
 
             # Button frame
             button_frame = tk.Frame(card_frame, bg="white")
             button_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
 
-            # Copy button for this template
-            def make_copy_func(t, btn, orig_text, csm):
+            # Copy button for this template - reads from text widget
+            def make_copy_func(tw, btn, orig_text, csm):
                 def copy_func():
+                    current_text = tw.get("1.0", tk.END).strip()
                     self.root.clipboard_clear()
-                    self.root.clipboard_append(t)
+                    self.root.clipboard_append(current_text)
                     self.status_label.config(text=f"✓ Copied CSM template for {csm} to clipboard", bg=self.success_color, fg="white")
                     btn.config(text="✓ Copied!", bg=self.success_color)
                     # Reset button text after 2 seconds
@@ -987,7 +1153,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 pady=8,
                 cursor="hand2"
             )
-            copy_btn.config(command=make_copy_func(template, copy_btn, button_text, csm_owner))
+            copy_btn.config(command=make_copy_func(text_widget, copy_btn, button_text, csm_owner))
             copy_btn.pack(side=tk.LEFT, padx=(0, 5))
 
             # Info label
