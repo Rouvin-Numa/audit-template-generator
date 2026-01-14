@@ -141,6 +141,23 @@ function displayCSVTab(filename, rows) {
     const headers = rows[0];
     const dataRows = rows.slice(1).filter(row => row.some(cell => cell && cell.trim()));
 
+    // Create search bar
+    const searchContainer = document.createElement('div');
+    searchContainer.className = 'csv-search-container';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'csv-search-input';
+    searchInput.placeholder = 'Search CSV data...';
+
+    const searchCount = document.createElement('span');
+    searchCount.className = 'csv-search-count';
+    searchCount.textContent = `${dataRows.length} rows`;
+
+    searchContainer.appendChild(searchInput);
+    searchContainer.appendChild(searchCount);
+    tabPanel.appendChild(searchContainer);
+
     // Create table
     const tableContainer = document.createElement('div');
     tableContainer.className = 'csv-table-container';
@@ -171,6 +188,25 @@ function displayCSVTab(filename, rows) {
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+
+    // Search functionality
+    searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const tableRows = tbody.querySelectorAll('tr');
+        let visibleCount = 0;
+
+        tableRows.forEach(tr => {
+            const rowText = tr.textContent.toLowerCase();
+            if (searchTerm === '' || rowText.includes(searchTerm)) {
+                tr.style.display = '';
+                visibleCount++;
+            } else {
+                tr.style.display = 'none';
+            }
+        });
+
+        searchCount.textContent = searchTerm ? `${visibleCount} of ${dataRows.length} rows` : `${dataRows.length} rows`;
+    });
 
     tableContainer.appendChild(table);
     tabPanel.appendChild(tableContainer);

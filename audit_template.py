@@ -353,6 +353,40 @@ class ZipCSVReaderApp:
             frame = ttk.Frame(self.csv_notebook)
             self.csv_notebook.add(frame, text=os.path.basename(filename))
 
+            # Search bar frame
+            search_frame = tk.Frame(frame, bg="#f8f9fa")
+            search_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            search_label = tk.Label(
+                search_frame,
+                text="Search:",
+                font=("Segoe UI", 9),
+                bg="#f8f9fa",
+                fg=self.text_color
+            )
+            search_label.pack(side=tk.LEFT, padx=(5, 5))
+
+            search_var = tk.StringVar()
+            search_entry = tk.Entry(
+                search_frame,
+                textvariable=search_var,
+                font=("Segoe UI", 10),
+                relief=tk.FLAT,
+                bg="white",
+                fg=self.text_color,
+                width=40
+            )
+            search_entry.pack(side=tk.LEFT, padx=5, ipady=4)
+
+            search_count_label = tk.Label(
+                search_frame,
+                text=f"{len(rows)-1} rows",
+                font=("Segoe UI", 9),
+                bg="#f8f9fa",
+                fg="#7f8fa6"
+            )
+            search_count_label.pack(side=tk.RIGHT, padx=10)
+
             # Create treeview for tabular display
             tree_frame = ttk.Frame(frame)
             tree_frame.pack(fill=tk.BOTH, expand=True)
@@ -378,6 +412,9 @@ class ZipCSVReaderApp:
             tree_frame.columnconfigure(0, weight=1)
             tree_frame.rowconfigure(0, weight=1)
 
+            # Store all items for search filtering
+            all_items = []
+
             if rows:
                 # Set up columns
                 headers = rows[0]
@@ -394,7 +431,34 @@ class ZipCSVReaderApp:
                     # Ensure row has same length as headers
                     while len(row) < len(headers):
                         row.append('')
-                    tree.insert("", tk.END, values=row[:len(headers)])
+                    item_id = tree.insert("", tk.END, values=row[:len(headers)])
+                    all_items.append((item_id, row[:len(headers)]))
+
+                # Search functionality
+                def on_search(*args):
+                    search_term = search_var.get().lower().strip()
+                    visible_count = 0
+
+                    for item_id, values in all_items:
+                        # Check if search term is in any cell
+                        row_text = ' '.join(str(v).lower() for v in values)
+                        if search_term == '' or search_term in row_text:
+                            # Show item - reinsert if hidden
+                            try:
+                                tree.reattach(item_id, '', tk.END)
+                                visible_count += 1
+                            except:
+                                pass
+                        else:
+                            # Hide item
+                            tree.detach(item_id)
+
+                    if search_term:
+                        search_count_label.config(text=f"{visible_count} of {len(all_items)} rows")
+                    else:
+                        search_count_label.config(text=f"{len(all_items)} rows")
+
+                search_var.trace('w', on_search)
 
                 # Add info label
                 info_label = ttk.Label(
@@ -447,6 +511,40 @@ class ZipCSVReaderApp:
                 frame = ttk.Frame(self.csv_notebook)
                 self.csv_notebook.add(frame, text=os.path.basename(csv_filename))
 
+                # Search bar frame
+                search_frame = tk.Frame(frame, bg="#f8f9fa")
+                search_frame.pack(fill=tk.X, padx=5, pady=5)
+
+                search_label = tk.Label(
+                    search_frame,
+                    text="Search:",
+                    font=("Segoe UI", 9),
+                    bg="#f8f9fa",
+                    fg=self.text_color
+                )
+                search_label.pack(side=tk.LEFT, padx=(5, 5))
+
+                search_var = tk.StringVar()
+                search_entry = tk.Entry(
+                    search_frame,
+                    textvariable=search_var,
+                    font=("Segoe UI", 10),
+                    relief=tk.FLAT,
+                    bg="white",
+                    fg=self.text_color,
+                    width=40
+                )
+                search_entry.pack(side=tk.LEFT, padx=5, ipady=4)
+
+                search_count_label = tk.Label(
+                    search_frame,
+                    text=f"{len(rows)-1} rows",
+                    font=("Segoe UI", 9),
+                    bg="#f8f9fa",
+                    fg="#7f8fa6"
+                )
+                search_count_label.pack(side=tk.RIGHT, padx=10)
+
                 # Create treeview for tabular display
                 tree_frame = ttk.Frame(frame)
                 tree_frame.pack(fill=tk.BOTH, expand=True)
@@ -472,6 +570,9 @@ class ZipCSVReaderApp:
                 tree_frame.columnconfigure(0, weight=1)
                 tree_frame.rowconfigure(0, weight=1)
 
+                # Store all items for search filtering
+                all_items = []
+
                 if rows:
                     # Set up columns
                     headers = rows[0]
@@ -488,7 +589,34 @@ class ZipCSVReaderApp:
                         # Ensure row has same length as headers
                         while len(row) < len(headers):
                             row.append('')
-                        tree.insert("", tk.END, values=row[:len(headers)])
+                        item_id = tree.insert("", tk.END, values=row[:len(headers)])
+                        all_items.append((item_id, row[:len(headers)]))
+
+                    # Search functionality
+                    def on_search(*args):
+                        search_term = search_var.get().lower().strip()
+                        visible_count = 0
+
+                        for item_id, values in all_items:
+                            # Check if search term is in any cell
+                            row_text = ' '.join(str(v).lower() for v in values)
+                            if search_term == '' or search_term in row_text:
+                                # Show item - reinsert if hidden
+                                try:
+                                    tree.reattach(item_id, '', tk.END)
+                                    visible_count += 1
+                                except:
+                                    pass
+                            else:
+                                # Hide item
+                                tree.detach(item_id)
+
+                        if search_term:
+                            search_count_label.config(text=f"{visible_count} of {len(all_items)} rows")
+                        else:
+                            search_count_label.config(text=f"{len(all_items)} rows")
+
+                    search_var.trace('w', on_search)
 
                     # Add info label
                     info_label = ttk.Label(

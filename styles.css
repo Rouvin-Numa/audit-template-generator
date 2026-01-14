@@ -533,6 +533,41 @@ textarea.template-text:focus {
     display: block;
 }
 
+/* CSV Search Bar */
+.csv-search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.csv-search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #dfe4ea;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.csv-search-input:focus {
+    border-color: #4834df;
+}
+
+.csv-search-input::placeholder {
+    color: #a4b0be;
+}
+
+.csv-search-count {
+    font-size: 11px;
+    color: #7f8fa6;
+    white-space: nowrap;
+}
+
 /* Status Bar */
 .status-bar {
     background-color: #ecf0f1;
