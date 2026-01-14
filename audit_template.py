@@ -879,24 +879,34 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
                 print(f"Found headers: {rooftop_headers}")
                 return
 
-            # Build a mapping of rooftop name to CSM owner
+            # Build a mapping of rooftop name to CSM owner and track all rooftops per CSM
             rooftop_to_csm = {}
+            all_rooftops_by_csm = defaultdict(list)  # Track all rooftops per CSM from rooftop_information.csv
             for row in rooftop_data:
                 if len(row) > max(rooftop_name_col_idx, csm_owner_idx):
                     rooftop_name = row[rooftop_name_col_idx].strip()
                     csm_owner = row[csm_owner_idx].strip()
                     if rooftop_name and csm_owner:
                         rooftop_to_csm[rooftop_name] = csm_owner
+                        all_rooftops_by_csm[csm_owner].append(rooftop_name)
 
-            # Group rooftops by CSM
-            csm_rooftops = defaultdict(list)
+            # Group rooftops by CSM - only rooftops that have lines data
+            csm_rooftops = defaultdict(lambda: {'included': [], 'skipped': []})
             for rooftop_name, data in rooftops.items():
                 csm_owner = rooftop_to_csm.get(rooftop_name, 'Unknown CSM')
                 inbox_name = data['inbox_name']
-                csm_rooftops[csm_owner].append({
+                csm_rooftops[csm_owner]['included'].append({
                     'rooftop_name': rooftop_name,
                     'inbox_name': inbox_name
                 })
+
+            # Find skipped rooftops for each CSM (in rooftop_information but not in lines file)
+            for csm_owner, rooftop_names in all_rooftops_by_csm.items():
+                if csm_owner not in csm_rooftops:
+                    csm_rooftops[csm_owner] = {'included': [], 'skipped': []}
+                for rooftop_name in rooftop_names:
+                    if rooftop_name not in rooftops:
+                        csm_rooftops[csm_owner]['skipped'].append(rooftop_name)
 
             # Generate CSM templates
             print("\n" + "="*80)
@@ -904,7 +914,14 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             print("="*80 + "\n")
 
             csm_template_text = ""
-            for csm_owner, rooftop_list in csm_rooftops.items():
+            for csm_owner, data in csm_rooftops.items():
+                rooftop_list = data['included']
+                skipped_list = data['skipped']
+
+                # Skip CSMs that have no included rooftops
+                if len(rooftop_list) == 0:
+                    continue
+
                 template = f"Hi {self.get_first_name(csm_owner)},\n\n"
                 template += "We've identified the following dealerships with low call volume over the past two weeks. To help us follow up, could you please provide a point of contact for each location so we can reach out to them?\n"
 
@@ -915,6 +932,8 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
 
                 csm_template_text += template + "\n" + "="*80 + "\n"
                 print(template)
+                if skipped_list:
+                    print(f"  [Skipped {len(skipped_list)} rooftop(s) - not in lines file: {', '.join(skipped_list)}]")
                 print("="*80 + "\n")
 
             # Create a tab with CSM templates
@@ -1199,7 +1218,18 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
         canvas.configure(yscrollcommand=scrollbar.set)
 
         # Create individual template cards for each CSM
-        for idx, (csm_owner, rooftop_list) in enumerate(csm_rooftops.items(), 1):
+        template_count = 0
+        for csm_owner, data in csm_rooftops.items():
+            rooftop_list = data['included']
+            skipped_list = data['skipped']
+
+            # Skip CSMs that have no included rooftops
+            if len(rooftop_list) == 0:
+                continue
+
+            template_count += 1
+            idx = template_count
+
             # Generate clean template for this CSM
             template = f"Hi {self.get_first_name(csm_owner)},\n\n"
             template += "We've identified the following dealerships with low call volume over the past two weeks. To help us follow up, could you please provide a point of contact for each location so we can reach out directly?\n"
@@ -1250,6 +1280,35 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
             text_widget.insert(1.0, template)
             # Template is now editable - no state=DISABLED
 
+            # Skipped rooftops note (if any)
+            if skipped_list:
+                skipped_frame = tk.Frame(card_frame, bg="#fff8e6", highlightbackground="#f5d77a", highlightthickness=1)
+                skipped_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
+
+                skipped_title = tk.Label(
+                    skipped_frame,
+                    text=f"Skipped {len(skipped_list)} rooftop(s) - not in lines_with_low_call_volume.csv:",
+                    font=("Segoe UI", 9, "bold"),
+                    bg="#fff8e6",
+                    fg="#856404",
+                    anchor=tk.W
+                )
+                skipped_title.pack(fill=tk.X, padx=10, pady=(8, 2))
+
+                for skipped_name in skipped_list:
+                    skipped_item = tk.Label(
+                        skipped_frame,
+                        text=f"  • {skipped_name}",
+                        font=("Segoe UI", 9),
+                        bg="#fff8e6",
+                        fg="#856404",
+                        anchor=tk.W
+                    )
+                    skipped_item.pack(fill=tk.X, padx=10, pady=1)
+
+                # Add bottom padding
+                tk.Frame(skipped_frame, bg="#fff8e6", height=8).pack(fill=tk.X)
+
             # Button frame
             button_frame = tk.Frame(card_frame, bg="white")
             button_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
@@ -1298,13 +1357,44 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # Show skipped CSMs (CSMs with rooftops in rooftop_information but none in lines file)
+        skipped_csms = [(csm, data['skipped']) for csm, data in csm_rooftops.items()
+                        if len(data['included']) == 0 and len(data['skipped']) > 0]
+        if skipped_csms:
+            skipped_csms_frame = tk.Frame(frame, bg="#fff8e6", highlightbackground="#f5d77a", highlightthickness=1)
+            skipped_csms_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 10))
+
+            skipped_csms_title = tk.Label(
+                skipped_csms_frame,
+                text="No templates generated for the following CSM(s) - all their rooftops are missing from lines_with_low_call_volume.csv:",
+                font=("Segoe UI", 9, "bold"),
+                bg="#fff8e6",
+                fg="#856404",
+                anchor=tk.W,
+                wraplength=800
+            )
+            skipped_csms_title.pack(fill=tk.X, padx=10, pady=(8, 5))
+
+            for csm_owner, skipped_list in skipped_csms:
+                csm_item = tk.Label(
+                    skipped_csms_frame,
+                    text=f"  {csm_owner}: {', '.join(skipped_list)}",
+                    font=("Segoe UI", 9),
+                    bg="#fff8e6",
+                    fg="#856404",
+                    anchor=tk.W
+                )
+                csm_item.pack(fill=tk.X, padx=10, pady=2)
+
+            tk.Frame(skipped_csms_frame, bg="#fff8e6", height=8).pack(fill=tk.X)
+
         # Add summary at bottom
         summary_frame = tk.Frame(frame, bg=self.bg_color)
         summary_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=15)
 
         summary_label = tk.Label(
             summary_frame,
-            text=f"✓ Generated {len(csm_rooftops)} CSM template(s) - One per CSM",
+            text=f"✓ Generated {template_count} CSM template(s) - One per CSM",
             font=("Segoe UI", 10, "bold"),
             bg=self.bg_color,
             fg=self.accent_color
@@ -1315,7 +1405,7 @@ To ensure you're getting the most out of your Numa subscription, please confirm 
         def copy_all():
             self.root.clipboard_clear()
             self.root.clipboard_append(template_text)
-            self.status_label.config(text=f"✓ Copied all {len(csm_rooftops)} CSM template(s) to clipboard", bg=self.success_color, fg="white")
+            self.status_label.config(text=f"✓ Copied all {template_count} CSM template(s) to clipboard", bg=self.success_color, fg="white")
             copy_all_btn.config(text="✓ Copied!", bg=self.success_color)
             # Reset button text after 2 seconds
             self.root.after(2000, lambda: (copy_all_btn.config(text="📋 Copy All Templates", bg=self.secondary_color),

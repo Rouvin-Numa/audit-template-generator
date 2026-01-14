@@ -541,28 +541,45 @@ function generateCSMTemplates(rooftopFile, rooftops) {
         return;
     }
 
-    // Build mapping
+    // Build mapping of all rooftops to their CSM from rooftop_information.csv
     const rooftopToCSM = {};
+    const allRooftopsByCSM = {}; // Track all rooftops per CSM from rooftop_information.csv
     rooftopData.forEach(row => {
         if (row.length > Math.max(rooftopNameColIdx, csmOwnerIdx)) {
             const rooftopName = row[rooftopNameColIdx]?.trim();
             const csmOwner = row[csmOwnerIdx]?.trim();
             if (rooftopName && csmOwner) {
                 rooftopToCSM[rooftopName] = csmOwner;
+                if (!allRooftopsByCSM[csmOwner]) {
+                    allRooftopsByCSM[csmOwner] = [];
+                }
+                allRooftopsByCSM[csmOwner].push(rooftopName);
             }
         }
     });
 
-    // Group by CSM
+    // Group by CSM - only rooftops that have lines data
     const csmRooftops = {};
     for (const [rooftopName, data] of Object.entries(rooftops)) {
         const csmOwner = rooftopToCSM[rooftopName] || 'Unknown CSM';
         if (!csmRooftops[csmOwner]) {
-            csmRooftops[csmOwner] = [];
+            csmRooftops[csmOwner] = { included: [], skipped: [] };
         }
-        csmRooftops[csmOwner].push({
+        csmRooftops[csmOwner].included.push({
             rooftop_name: rooftopName,
             inbox_name: data.inbox_name
+        });
+    }
+
+    // Find skipped rooftops for each CSM (in rooftop_information but not in lines file)
+    for (const [csmOwner, rooftopNames] of Object.entries(allRooftopsByCSM)) {
+        if (!csmRooftops[csmOwner]) {
+            csmRooftops[csmOwner] = { included: [], skipped: [] };
+        }
+        rooftopNames.forEach(rooftopName => {
+            if (!rooftops[rooftopName]) {
+                csmRooftops[csmOwner].skipped.push(rooftopName);
+            }
         });
     }
 
@@ -591,7 +608,13 @@ function createCSMTemplatesTab(csmRooftops) {
     let allTemplatesText = '';
     let idx = 1;
 
-    for (const [csmOwner, rooftopList] of Object.entries(csmRooftops)) {
+    for (const [csmOwner, data] of Object.entries(csmRooftops)) {
+        const rooftopList = data.included;
+        const skippedList = data.skipped;
+
+        // Skip CSMs that have no included rooftops
+        if (rooftopList.length === 0) continue;
+
         let template = `Hi ${getFirstName(csmOwner)},
 
 We've identified the following dealerships with low call volume over the past two weeks. To help us follow up, could you please provide a point of contact for each location so we can reach out directly?
@@ -605,23 +628,44 @@ We've identified the following dealerships with low call volume over the past tw
 
         allTemplatesText += template + '\n' + '='.repeat(80) + '\n\n';
 
-        // Create card
-        const card = createTemplateCard(idx, csmOwner, template, rooftopList.length, csmOwner, true);
+        // Create card with skipped rooftops info
+        const card = createTemplateCard(idx, csmOwner, template, rooftopList.length, csmOwner, true, null, null, skippedList);
         templatesContainer.appendChild(card);
         idx++;
     }
 
     tabPanel.appendChild(templatesContainer);
 
+    // Show skipped CSMs (CSMs with rooftops in rooftop_information but none in lines file)
+    const skippedCSMs = Object.entries(csmRooftops).filter(([csm, data]) => data.included.length === 0 && data.skipped.length > 0);
+    if (skippedCSMs.length > 0) {
+        const skippedCSMsSection = document.createElement('div');
+        skippedCSMsSection.className = 'skipped-csms-section';
+
+        const skippedCSMsTitle = document.createElement('div');
+        skippedCSMsTitle.className = 'skipped-csms-title';
+        skippedCSMsTitle.textContent = `No templates generated for the following CSM(s) - all their rooftops are missing from lines_with_low_call_volume.csv:`;
+        skippedCSMsSection.appendChild(skippedCSMsTitle);
+
+        skippedCSMs.forEach(([csmOwner, data]) => {
+            const csmItem = document.createElement('div');
+            csmItem.className = 'skipped-csm-item';
+            csmItem.innerHTML = `<strong>${csmOwner}:</strong> ${data.skipped.join(', ')}`;
+            skippedCSMsSection.appendChild(csmItem);
+        });
+
+        tabPanel.appendChild(skippedCSMsSection);
+    }
+
     // Summary section
-    const summary = createSummarySection(Object.keys(csmRooftops).length, allTemplatesText, 'CSM template');
+    const summary = createSummarySection(Object.keys(csmRooftops).filter(csm => csmRooftops[csm].included.length > 0).length, allTemplatesText, 'CSM template');
     tabPanel.appendChild(summary);
 
     tabContent.appendChild(tabPanel);
 }
 
 // Create template card
-function createTemplateCard(idx, title, template, count, entityName, isCSM = false, subjectLine = null, deskPhonesData = null) {
+function createTemplateCard(idx, title, template, count, entityName, isCSM = false, subjectLine = null, deskPhonesData = null, skippedRooftops = null) {
     const card = document.createElement('div');
     card.className = 'template-card';
 
@@ -720,6 +764,28 @@ function createTemplateCard(idx, title, template, count, entityName, isCSM = fal
     }
 
     card.appendChild(contentContainer);
+
+    // Skipped rooftops note (only for CSM templates)
+    if (skippedRooftops && skippedRooftops.length > 0) {
+        const skippedNote = document.createElement('div');
+        skippedNote.className = 'skipped-rooftops-note';
+
+        const skippedTitle = document.createElement('div');
+        skippedTitle.className = 'skipped-rooftops-title';
+        skippedTitle.textContent = `Skipped ${skippedRooftops.length} rooftop(s) - not in lines_with_low_call_volume.csv:`;
+        skippedNote.appendChild(skippedTitle);
+
+        const skippedList = document.createElement('ul');
+        skippedList.className = 'skipped-rooftops-list';
+        skippedRooftops.forEach(rooftopName => {
+            const li = document.createElement('li');
+            li.textContent = rooftopName;
+            skippedList.appendChild(li);
+        });
+        skippedNote.appendChild(skippedList);
+
+        card.appendChild(skippedNote);
+    }
 
     // Footer
     const footer = document.createElement('div');

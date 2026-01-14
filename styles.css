@@ -388,6 +388,55 @@ textarea.template-text:focus {
     }
 }
 
+/* Skipped Rooftops Note */
+.skipped-rooftops-note {
+    margin: 10px 20px;
+    padding: 10px 15px;
+    background: #fff8e6;
+    border: 1px solid #f5d77a;
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+.skipped-rooftops-title {
+    color: #856404;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.skipped-rooftops-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #856404;
+}
+
+.skipped-rooftops-list li {
+    margin: 2px 0;
+}
+
+/* Skipped CSMs Section */
+.skipped-csms-section {
+    margin: 15px;
+    padding: 15px;
+    background: #fff8e6;
+    border: 1px solid #f5d77a;
+    border-radius: 6px;
+}
+
+.skipped-csms-title {
+    color: #856404;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.skipped-csm-item {
+    color: #856404;
+    font-size: 11px;
+    margin: 5px 0;
+    padding-left: 10px;
+}
+
 .card-footer {
     padding: 10px 20px;
     background: white;
