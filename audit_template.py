@@ -529,10 +529,11 @@ class ZipCSVReaderApp:
             return phone
 
     def capitalize_name(self, name):
-        """Capitalize name: first character uppercase, rest lowercase"""
+        """Capitalize name: each word's first character uppercase, rest lowercase"""
         if not name:
             return name
-        return name[0].upper() + name[1:].lower() if len(name) > 0 else name
+        # Use title() to capitalize each word properly
+        return name.title()
 
     def get_first_name(self, full_name):
         """Extract first name from full name"""

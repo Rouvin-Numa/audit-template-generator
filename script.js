@@ -252,7 +252,8 @@ function formatPhoneNumber(phone) {
 
 function capitalizeName(name) {
     if (!name) return name;
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    // Capitalize each word (title case)
+    return name.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
 }
 
 function getFirstName(fullName) {
